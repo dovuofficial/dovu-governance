@@ -32,7 +32,7 @@ header {
   color: var(--cds-nl-0);
   padding: 8rem 1rem 2rem 1rem;
   border-bottom: 1px solid var(--cds-nd-600);
-  background-image: url("@/assets/dovu-icon.png");
+  background-image: url("@/assets/dovu-icon.svg");
   background-repeat: no-repeat;
   background-position: center top 2rem;
   background-size: 5rem;
