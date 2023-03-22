@@ -189,7 +189,7 @@ watch(signalConnectWallet, (newValue) => {
 header.main {
   text-align: right;
   padding: 1.5rem clamp(1.25rem, 19.72265vw - 73.959938px, 8rem);
-  background-image: url("@/assets/logo.svg");
+  background-image: url("@/assets/dovu-logo-white.svg");
   background-repeat: no-repeat;
   background-position: clamp(1.25rem, 19.72265vw - 73.959938px, 8rem) center;
   background-size: auto calc(100% - 2.5rem);
