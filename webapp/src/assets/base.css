@@ -36,6 +36,7 @@ button {
 
 button:hover {
 	border-color: var(--cds-nd-400);
+	cursor: pointer;
 }
 
 button:focus {
@@ -61,7 +62,7 @@ button:disabled:active {
 }
 
 button.secondary {
-	color: var(--cds-nd-600);
+	color: var(--cds-nl-0);
 	background-color: var(--cds-cs-500);
 	border-color: var(--cds-cs-500);
 }
