@@ -19,7 +19,7 @@ import {
 import { ref } from "vue";
 import { network } from "./info";
 
-const client = new HashConnectCachedClient("tcg.hcs.governance.hashconnect");
+const client = new HashConnectCachedClient("dovu.hcs.governance.hashconnect");
 
 export const pairedWallet = ref<WalletMetadata | undefined>(
   client.pairedWallet
@@ -30,8 +30,8 @@ export function openHashconnectPairRequest(): string {
   const networkName =
     network.value.network.toLowerCase() == "mainnet" ? "mainnet" : "testnet";
   const req = client.openPairRequest(
-    "TCG Governance",
-    "TCG Governance App",
+    "DOVU",
+    "DOVU Community Governance",
     networkName
   );
   req.pairCompleted.then((w) => (pairedWallet.value = w));
