@@ -53,15 +53,7 @@ export class HcsBallotProcessingService {
 	 * list of proposed ballots).
 	 */
 	processMessage(hcsMessage: ConsensusTopicResponse, hcsMirrorRecord: MessageInfo, hcsPayload: any): () => Promise<void> {
-		// Get the rules for this ballot.
 		const rule = this.dataService.getRule(hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString);
-
-		if (!rule) {
-			this.logger.verbose(
-				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: No rule found for ballot. Make sure a define-rules message is submitted before creating a ballot.`,
-			);
-			return;
-		}
 
 		const ballot: Ballot = {
 			consensusTimestamp: hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString,
@@ -81,7 +73,12 @@ export class HcsBallotProcessingService {
 			checksum: undefined,
 			rule,
 		};
-		if (!is_timestamp(ballot.consensusTimestamp)) {
+
+		if (!rule) {
+			this.logger.verbose(
+				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: No rule found for ballot. Make sure a define-rules message is submitted before creating a ballot.`,
+			);
+		} else if (!is_timestamp(ballot.consensusTimestamp)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Consensus Timestamp.`);
 		} else if (!is_entity_id(ballot.tokenId)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Token ID.`);
