@@ -197,8 +197,12 @@ export class DataService {
 	 * @returns The rule for the given consensus timestamp or undefined if no rule exists.
 	 * */
 	getRule(consensusTimestamp: TimestampKeyString): Rule | undefined {
+		if (rules.has(consensusTimestamp)) {
+			return rules.get(consensusTimestamp);
+		}
+
 		return Array.from(rules.values())
-			.filter((r) => r.consensusTimestamp <= consensusTimestamp)
+			.filter((r) => r.consensusTimestamp < consensusTimestamp)
 			.sort((a, b) => b.consensusTimestamp.localeCompare(a.consensusTimestamp))[0];
 	}
 
