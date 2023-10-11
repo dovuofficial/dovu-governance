@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
 import { MessageInfo, MirrorError, MirrorRestClient, TokenBalanceInfo } from '@bugbytes/hapi-mirror';
 import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
-import { TokenSummary } from 'src/models/token-summary';
+import { Injectable, Logger } from '@nestjs/common';
 import { AppConfiguration } from 'src/models/app-configuration';
+import { TokenSummary } from 'src/models/token-summary';
+import { DataService } from './data.service';
 /**
  * Provides various methods for retrieving information from a remote
  * Hedera Mirror Node REST API.
@@ -23,18 +24,22 @@ export class MirrorClientService {
 	 * @param config The application's configuration containing details
 	 * such as the id of the voting token.
 	 */
-	constructor(private readonly config: AppConfiguration) {
+	constructor(private readonly config: AppConfiguration, private readonly dataService: DataService) {
 		this.client = new MirrorRestClient(this.config.mirrorRest);
 	}
+
 	/**
-	 * Retrieves the token information for the token identified in the
-	 * system-wide configuration.
+	 * Retrieves the token information for the token passed in.
+	 *
+	 * @param tokenId The associated token identifier.
+	 *
+	 * @param timestamp The timestamp at which the balance value is requested.
 	 *
 	 * @returns A `TokenSummary` object describing the voting token to be
 	 * used in processing.  If not found, an error is raised.
 	 */
-	async getHcsTokenSummary(timestamp: TimestampKeyString | undefined = undefined): Promise<TokenSummary> {
-		const record = await this.client.getTokenInfo(this.config.hcsToken.id, timestamp);
+	async getTokenInfo(tokenId: EntityIdKeyString, timestamp?: TimestampKeyString): Promise<TokenSummary> {
+		const record = await this.client.getTokenInfo(tokenId, timestamp);
 		return {
 			id: record.token_id as unknown as EntityIdKeyString,
 			symbol: record.symbol,

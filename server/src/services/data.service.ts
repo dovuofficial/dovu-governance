@@ -192,12 +192,14 @@ export class DataService {
 	}
 
 	/**
-	 * Retrieves the rule for a given consensus timestamp.
+	 * Retrieves the latest rule before or on a given consensus timestamp.
 	 * @param consensusTimestamp The consensus timestamp of the rule to retrieve.
 	 * @returns The rule for the given consensus timestamp or undefined if no rule exists.
 	 * */
 	getRule(consensusTimestamp: TimestampKeyString): Rule | undefined {
-		return rules.get(consensusTimestamp);
+		return Array.from(rules.values())
+			.filter((r) => r.consensusTimestamp <= consensusTimestamp)
+			.sort((a, b) => b.consensusTimestamp.localeCompare(a.consensusTimestamp))[0];
 	}
 
 	/**
@@ -260,7 +262,7 @@ async function computeChecksumIfNecessary(client: MirrorClientService, ballot: B
 	// balance necessary to pass the ballot.
 	let threshold = 0;
 	if (ballot.minVotingThreshold > 0) {
-		const circulation = (await client.getHcsTokenSummary(ballot.startTimestamp)).circulation;
+		const circulation = (await client.getTokenInfo(ballot.rule.tokenId, ballot.startTimestamp)).circulation;
 		const ineligible =
 			ballot.ineligibleAccounts.length > 0
 				? (await Promise.all(ballot.ineligibleAccounts.map((a) => client.getTokenBalance(a, ballot.tokenId, ballot.startTimestamp))))
