@@ -182,7 +182,7 @@ export class HcsMessageListenerService {
 		const timestamp = keyString_to_timestamp(latestMessage.consensus_timestamp as TimestampKeyString);
 		const envTimestamp = keyString_to_timestamp(this.config.hcsStartDate);
 
-		if (this.sequenceNumber === 1 && !envTimestamp) {
+		if (this.sequenceNumber === 1 && (!envTimestamp || (envTimestamp.seconds === 0 && envTimestamp.nanos === 0))) {
 			return timestamp;
 		}
 
