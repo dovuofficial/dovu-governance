@@ -192,17 +192,26 @@ export class DataService {
 	}
 
 	/**
-	 * Retrieves the latest rule before or on a given consensus timestamp.
+	 * Retrieves the rule corresponding to the given consensus timestamp.
 	 * @param consensusTimestamp The consensus timestamp of the rule to retrieve.
 	 * @returns The rule for the given consensus timestamp or undefined if no rule exists.
 	 * */
 	getRule(consensusTimestamp: TimestampKeyString): Rule | undefined {
+		return rules.get(consensusTimestamp);
+	}
+
+	/**
+	 * Retrieves the latest rule before or on a given consensus timestamp. If no timestamp is provided, the latest rule is returned.
+	 * @param consensusTimestamp Optional consensus timestamp of the rule to retrieve.
+	 * @returns The rule for the given consensus timestamp or undefined if no rule exists.
+	 * */
+	getLatestRule(consensusTimestamp?: TimestampKeyString): Rule | undefined {
 		if (rules.has(consensusTimestamp)) {
 			return rules.get(consensusTimestamp);
 		}
 
 		return Array.from(rules.values())
-			.filter((r) => r.consensusTimestamp < consensusTimestamp)
+			.filter((r) => (consensusTimestamp ? r.consensusTimestamp < consensusTimestamp : true))
 			.sort((a, b) => b.consensusTimestamp.localeCompare(a.consensusTimestamp))[0];
 	}
 
@@ -216,18 +225,6 @@ export class DataService {
 		}
 
 		return Array.from(rules.values()).sort((a, b) => a.consensusTimestamp.localeCompare(b.consensusTimestamp))[0];
-	}
-
-	/**
-	 * Retrieves the rule that was submitted last. This is used as the primary rule used for all ballots.
-	 * @returns The Rule that was submitted last or undefined if no rules exist yet.
-	 * */
-	getLatestRule(): Rule | undefined {
-		if (rules.size === 0) {
-			return undefined;
-		}
-
-		return Array.from(rules.values()).sort((a, b) => b.consensusTimestamp.localeCompare(a.consensusTimestamp))[0];
 	}
 }
 /**

@@ -193,10 +193,13 @@ export class HcsMessageProcessingService {
 		if (!hcsPayload) {
 			return this.discardMessage;
 		}
+		console.log(`Processing message ${hcsMessage.sequenceNumber} of type ${hcsPayload['type']}`);
+
 		const hcsMirrorRecord = await this.getMirrorRecord(hcsMessage.sequenceNumber);
 		if (!hcsMirrorRecord) {
 			return this.discardMessage;
 		}
+
 		switch (hcsPayload['type']) {
 			case 'create-ballot':
 				return this.hcsBallotProcessor.processMessage(hcsMessage, hcsMirrorRecord, hcsPayload);

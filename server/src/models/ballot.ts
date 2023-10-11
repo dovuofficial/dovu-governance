@@ -88,5 +88,5 @@ export interface Ballot {
 	 *
 	 * @see Rule
 	 */
-	rule: Rule;
+	rule: Rule | undefined;
 }

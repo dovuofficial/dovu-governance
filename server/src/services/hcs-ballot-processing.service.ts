@@ -53,8 +53,6 @@ export class HcsBallotProcessingService {
 	 * list of proposed ballots).
 	 */
 	processMessage(hcsMessage: ConsensusTopicResponse, hcsMirrorRecord: MessageInfo, hcsPayload: any): () => Promise<void> {
-		const rule = this.dataService.getRule(hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString);
-
 		const ballot: Ballot = {
 			consensusTimestamp: hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString,
 			tokenId: hcsPayload.tokenId,
@@ -66,28 +64,20 @@ export class HcsBallotProcessingService {
 			choices: hcsPayload.choices,
 			startTimestamp: hcsPayload.startTimestamp,
 			endTimestamp: hcsPayload.endTimestamp,
-			minVotingThreshold: hcsPayload.threshold || rule.minVotingThreshold || 0,
+			minVotingThreshold: hcsPayload.threshold || 0,
 			ineligibleAccounts: hcsPayload.ineligible || [],
 			tally: new Array(hcsPayload.choices.length).fill(0),
 			winner: undefined,
 			checksum: undefined,
-			rule,
+			rule: undefined,
 		};
 
-		if (!rule) {
-			this.logger.verbose(
-				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: No rule found for ballot. Make sure a define-rules message is submitted before creating a ballot.`,
-			);
-		} else if (!is_timestamp(ballot.consensusTimestamp)) {
+		if (!is_timestamp(ballot.consensusTimestamp)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Consensus Timestamp.`);
 		} else if (!is_entity_id(ballot.tokenId)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Token ID.`);
-		} else if (ballot.tokenId !== ballot.rule.tokenId) {
-			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: contains a create-ballot for a different payment token ID.`);
 		} else if (!is_entity_id(ballot.payerId)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Payer ID.`);
-		} else if (rule.ballotCreators.length > 0 && rule.ballotCreators.indexOf(ballot.payerId) === -1) {
-			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Payer ID is not on the allowed list.`);
 		} else if (!ballot.title) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Empty title.`);
 		} else if (!ballot.description) {
@@ -104,25 +94,13 @@ export class HcsBallotProcessingService {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Voting Completion Time.`);
 		} else if (ballot.startTimestamp >= ballot.endTimestamp) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Voting ending time preceeds starting.`);
-		} else if (computeDiffInDays(ballot.startTimestamp, ballot.endTimestamp) < rule.minVotingThreshold) {
-			this.logger.verbose(
-				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Voting ending time does not permit required voting windo of ${rule.minVotingThreshold} days.`,
-			);
 		} else if (ballot.consensusTimestamp > ballot.startTimestamp) {
 			this.logger.verbose(
 				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Proposal Voting Starting Time preceeds Proposal Creation Time.`,
 			);
-		} else if (computeDiffInDays(ballot.consensusTimestamp, ballot.startTimestamp) < rule.minimumStandoffPeriod) {
-			this.logger.verbose(
-				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Voting starting time is less than ${rule.minimumStandoffPeriod} days from ballot creation.`,
-			);
 		} else if (isNaN(ballot.minVotingThreshold) || ballot.minVotingThreshold < 0 || ballot.minVotingThreshold > 1) {
 			this.logger.verbose(
 				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Minimum Voting Threshold, must be a fraction between 0 and 1.0 inclusive.`,
-			);
-		} else if (ballot.minVotingThreshold < rule.minVotingThreshold) {
-			this.logger.verbose(
-				`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Minimum Voting Threshold, must be equal to or greater than global configuration of ${rule.minVotingThreshold}.`,
 			);
 		} else if (!Array.isArray(ballot.ineligibleAccounts)) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Ineligible account list is not an array.`);
@@ -131,11 +109,38 @@ export class HcsBallotProcessingService {
 		} else if (-1 !== ballot.ineligibleAccounts.findIndex((a) => !is_entity_id(a))) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Found invalid account id in list of inelegible accounts.`);
 		} else {
-			ballot.ineligibleAccounts = [...new Set([...ballot.ineligibleAccounts, ...rule.ineligibleAccounts])];
 			return async () => {
-				if (await this.dataService.getBallot(ballot.consensusTimestamp)) {
+				const rule = this.dataService.getLatestRule(hcsMirrorRecord.consensus_timestamp as unknown as TimestampKeyString);
+
+				if (!rule) {
+					this.logger.verbose(
+						`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: No rule found for ballot. Make sure a define-rules message is submitted before creating a ballot.`,
+					);
+				} else if (rule.ballotCreators?.length > 0 && rule.ballotCreators.indexOf(ballot.payerId) === -1) {
+					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Payer ID is not on the allowed list.`);
+				} else if (await this.dataService.getBallot(ballot.consensusTimestamp)) {
 					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Ballot with same consensus timestamp already exists.`);
+				} else if (ballot.minVotingThreshold < rule.minVotingThreshold) {
+					this.logger.verbose(
+						`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Invalid Minimum Voting Threshold, must be equal to or greater than global configuration of ${rule.minVotingThreshold}.`,
+					);
+				} else if (computeDiffInDays(ballot.consensusTimestamp, ballot.startTimestamp) < rule.minimumStandoffPeriod) {
+					this.logger.verbose(
+						`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Voting starting time is less than ${rule.minimumStandoffPeriod} days from ballot creation.`,
+					);
+				} else if (computeDiffInDays(ballot.startTimestamp, ballot.endTimestamp) < rule.minVotingThreshold) {
+					this.logger.verbose(
+						`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: Voting ending time does not permit required voting windo of ${rule.minVotingThreshold} days.`,
+					);
+				} else if (ballot.tokenId !== rule.tokenId) {
+					this.logger.verbose(
+						`Message ${hcsMessage.sequenceNumber} failed create-ballot validation: contains a create-ballot for a different payment token ID.`,
+					);
 				} else {
+					ballot.ineligibleAccounts = [...new Set([...ballot.ineligibleAccounts, ...(rule.ineligibleAccounts ? rule.ineligibleAccounts : [])])];
+					ballot.minVotingThreshold = ballot.minVotingThreshold || rule.minVotingThreshold || 0;
+					ballot.rule = rule;
+
 					this.dataService.setBallot(ballot);
 					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} added Ballot ${ballot.consensusTimestamp} to list.`);
 				}

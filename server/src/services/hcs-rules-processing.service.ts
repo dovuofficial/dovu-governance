@@ -5,7 +5,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Rule } from 'src/models/rules';
 import { RulesDefinition } from 'src/models/rules-definition';
 import { TokenSummary } from 'src/models/token-summary';
-import { noop } from 'src/util/noop';
 import { DataService } from './data.service';
 import { MirrorClientService } from './mirror-client.service';
 /**
@@ -61,38 +60,34 @@ export class HcsRulesProcessingService {
 			payerId: hcsMirrorRecord.payer_account_id as unknown as EntityIdKeyString,
 		};
 
-		const firstRule = this.dataService.getFirstRule();
+		return async () => {
+			const firstRule = this.dataService.getFirstRule();
 
-		if (firstRule && firstRule.payerId !== rule.payerId) {
-			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed rule validation: Rule wasn't submitted by the first rule submitter.`);
-		} else {
-			return async () => {
-				if (this.dataService.getRule(rule.consensusTimestamp)) {
-					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed rule validation: Rule already exists.`);
-				} else {
-					try {
-						const hcsToken = await this.getHcsTokenInfo(rule);
+			if (firstRule && firstRule.payerId !== rule.payerId) {
+				this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed rule validation: Rule wasn't submitted by the first rule submitter.`);
+			} else if (this.dataService.getRule(rule.consensusTimestamp)) {
+				this.logger.verbose(`Message ${hcsMessage.sequenceNumber} failed rule validation: Rule already exists.`);
+			} else {
+				try {
+					const hcsToken = await this.getHcsTokenInfo(rule);
 
-						rule.title = rule.title || hcsToken.symbol;
-						rule.description = rule.description || hcsToken.name;
-						this.verifyAccountList(rule.ineligibleAccounts);
-						this.verifyAccountList(rule.ballotCreators);
-						this.verifyMinVotingThreshold(rule);
-						this.verifyMinimumVotingPeriod(rule);
-						this.verifyMinimumStandoffPeriod(rule);
+					rule.title = rule.title || hcsToken.symbol;
+					rule.description = rule.description || hcsToken.name;
+					rule.hcsToken = hcsToken;
+					this.verifyAccountList(rule.ineligibleAccounts);
+					this.verifyAccountList(rule.ballotCreators);
+					this.verifyMinVotingThreshold(rule);
+					this.verifyMinimumVotingPeriod(rule);
+					this.verifyMinimumStandoffPeriod(rule);
 
-						this.dataService.setRule(rule);
+					this.dataService.setRule(rule);
 
-						this.logger.verbose(`Message for ${hcsMessage.sequenceNumber} successfully added rule.`);
-					} catch (ex) {
-						this.logger.error(`Message ${hcsMessage.sequenceNumber} failed rule validation: ${ex.message}`);
-					}
+					this.logger.verbose(`Message for ${hcsMessage.sequenceNumber} successfully added rule.`);
+				} catch (ex) {
+					this.logger.error(`Message ${hcsMessage.sequenceNumber} failed rule validation: ${ex.message}`);
 				}
-			};
-		}
-
-		// Not a valid message, do nothing.
-		return noop;
+			}
+		};
 	}
 
 	/**
@@ -100,7 +95,6 @@ export class HcsRulesProcessingService {
 	 * information describing the HCS token representing voting weights.
 	 */
 	private async getHcsTokenInfo(rule: Rule): Promise<TokenSummary> {
-		this.logger.log(`Retrieving information for voting token ${rule.tokenId}.`);
 		if (!rule.tokenId) {
 			throw new Error('Voting Token ID is missing from configuration.');
 		}
