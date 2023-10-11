@@ -1,10 +1,10 @@
-import { EntityIdKeyString, keyString_to_timestamp, keyString_to_topicID, TimestampKeyString, timestamp_to_keyString } from '@bugbytes/hapi-util';
+import { ConsensusTopicQuery, ConsensusTopicResponse } from '@bugbytes/hapi-proto';
+import { EntityIdKeyString, TimestampKeyString, keyString_to_timestamp, keyString_to_topicID, timestamp_to_keyString } from '@bugbytes/hapi-util';
+import { ChannelCredentials, Client } from '@grpc/grpc-js';
 import { Injectable, Logger } from '@nestjs/common';
 import { Timeout } from '@nestjs/schedule';
-import { Client, ChannelCredentials } from '@grpc/grpc-js';
-import { HcsMessageProcessingService } from './hcs-message-processing.service';
-import { ConsensusTopicQuery, ConsensusTopicResponse } from '@bugbytes/hapi-proto';
 import { AppConfiguration } from 'src/models/app-configuration';
+import { HcsMessageProcessingService } from './hcs-message-processing.service';
 import { MirrorClientService } from './mirror-client.service';
 
 /**
@@ -180,13 +180,18 @@ export class HcsMessageListenerService {
 	private async computeStreamStartingTimestamp() {
 		const latestMessage = await this.mirror.waitForHcsMessageInfo(this.sequenceNumber);
 		const timestamp = keyString_to_timestamp(latestMessage.consensus_timestamp as TimestampKeyString);
+		const envTimestamp = keyString_to_timestamp(this.config.hcsStartDate);
+
+		if (this.sequenceNumber === 1 && !envTimestamp) {
+			return timestamp;
+		}
+
 		if (timestamp.nanos < 999999999) {
 			timestamp.nanos = timestamp.nanos + 1;
 		} else {
 			timestamp.seconds = timestamp.seconds + 1;
 			timestamp.nanos = 0;
 		}
-		const envTimestamp = keyString_to_timestamp(this.config.hcsStartDate);
 		if (envTimestamp.seconds > timestamp.seconds) {
 			return envTimestamp;
 		} else if (timestamp.seconds > envTimestamp.seconds) {
@@ -194,6 +199,7 @@ export class HcsMessageListenerService {
 		} else if (envTimestamp.nanos > timestamp.nanos) {
 			return envTimestamp;
 		}
+
 		return timestamp;
 	}
 }
