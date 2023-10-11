@@ -3,7 +3,6 @@ import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
 import { Injectable, Logger } from '@nestjs/common';
 import { AppConfiguration } from 'src/models/app-configuration';
 import { TokenSummary } from 'src/models/token-summary';
-import { DataService } from './data.service';
 /**
  * Provides various methods for retrieving information from a remote
  * Hedera Mirror Node REST API.
@@ -24,7 +23,7 @@ export class MirrorClientService {
 	 * @param config The application's configuration containing details
 	 * such as the id of the voting token.
 	 */
-	constructor(private readonly config: AppConfiguration, private readonly dataService: DataService) {
+	constructor(private readonly config: AppConfiguration) {
 		this.client = new MirrorRestClient(this.config.mirrorRest);
 	}
 
