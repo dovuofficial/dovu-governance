@@ -69,7 +69,7 @@ export class HcsBallotProcessingService {
 			tally: new Array(hcsPayload.choices.length).fill(0),
 			winner: undefined,
 			checksum: undefined,
-			rule: undefined,
+			hcsToken: undefined,
 		};
 
 		if (!is_timestamp(ballot.consensusTimestamp)) {
@@ -139,7 +139,7 @@ export class HcsBallotProcessingService {
 				} else {
 					ballot.ineligibleAccounts = [...new Set([...ballot.ineligibleAccounts, ...(rule.ineligibleAccounts ? rule.ineligibleAccounts : [])])];
 					ballot.minVotingThreshold = ballot.minVotingThreshold || rule.minVotingThreshold || 0;
-					ballot.rule = rule;
+					ballot.hcsToken = rule.hcsToken;
 
 					this.dataService.setBallot(ballot);
 					this.logger.verbose(`Message ${hcsMessage.sequenceNumber} added Ballot ${ballot.consensusTimestamp} to list.`);

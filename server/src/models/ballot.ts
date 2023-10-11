@@ -1,5 +1,5 @@
 import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
-import { Rule } from './rules';
+import { TokenSummary } from './token-summary';
 /**
  * Stores the details of a proposal ballot (excluding individual votes cast).
  */
@@ -81,12 +81,9 @@ export interface Ballot {
 	 * counting command line applications.
 	 */
 	checksum: string;
+
 	/**
-	 * The latest Rule that was defined prior to the creation of this
-	 * ballot.  This is used to determine the voting rules for this
-	 * ballot.
-	 *
-	 * @see Rule
+	 * Represents details of the voting token attached to this ballot instance.
 	 */
-	rule: Rule | undefined;
+	hcsToken: TokenSummary;
 }

@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import {
-  currentGateway,
-  GatewayProvider,
-  signalConnectWallet,
-} from "@/models/gateway";
 import BackLink from "@/components/BackLink.vue";
-import DateRangeDialog from "../components/DateRangeDialog.vue";
+import BorderPanel from "@/components/BorderPanel.vue";
+import ButtonPanel from "@/components/ButtonPanel.vue";
 import ProposalDetailView from "@/components/ProposalDetailView.vue";
-import type { BallotCreateParams } from "@/models/gateway";
-import type { ProposalDetail } from "@/models/proposal";
-import { ProposalStatus } from "@/models/proposal-status";
+import SubmitProposalDialog from "@/components/SubmitProposalDialog.vue";
 import {
   ceilingEpochFromDate,
   floorOrStandoffEpochFromDate,
 } from "@/models/epoch";
-import { trimOptionalText } from "@/models/text";
-import BorderPanel from "@/components/BorderPanel.vue";
-import ButtonPanel from "@/components/ButtonPanel.vue";
-import SubmitProposalDialog from "@/components/SubmitProposalDialog.vue";
-import LeafPageContainer from "../components/LeafPageContainer.vue";
+import type { BallotCreateParams } from "@/models/gateway";
+import {
+  GatewayProvider,
+  currentGateway,
+  signalConnectWallet,
+} from "@/models/gateway";
 import { pairedWallet } from "@/models/hashconnect";
 import { network } from "@/models/info";
+import type { ProposalDetail } from "@/models/proposal";
+import { ProposalStatus } from "@/models/proposal-status";
+import { trimOptionalText } from "@/models/text";
+import { computed, ref } from "vue";
+import DateRangeDialog from "../components/DateRangeDialog.vue";
+import LeafPageContainer from "../components/LeafPageContainer.vue";
 
 const dateDialog = ref<any>();
 const submitDialog = ref<any>();
@@ -75,6 +75,12 @@ function showPreview() {
     votes: [],
     winner: -1,
     checksum: "",
+    hcsToken: {
+      id: "0.0.0",
+      symbol: "VOTE",
+      name: "VOTE Token",
+      decimals: 3,
+    },
   };
 }
 

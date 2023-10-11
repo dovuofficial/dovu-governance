@@ -263,7 +263,7 @@ async function computeChecksumIfNecessary(client: MirrorClientService, ballot: B
 	// balance necessary to pass the ballot.
 	let threshold = 0;
 	if (ballot.minVotingThreshold > 0) {
-		const circulation = (await client.getTokenInfo(ballot.rule.tokenId, ballot.startTimestamp)).circulation;
+		const circulation = (await client.getTokenInfo(ballot.hcsToken.id, ballot.startTimestamp)).circulation;
 		const ineligible =
 			ballot.ineligibleAccounts.length > 0
 				? (await Promise.all(ballot.ineligibleAccounts.map((a) => client.getTokenBalance(a, ballot.tokenId, ballot.startTimestamp))))
