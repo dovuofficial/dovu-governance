@@ -197,7 +197,6 @@ export class HcsMessageProcessingService {
 		if (!hcsPayload) {
 			return this.discardMessage;
 		}
-		console.log(`Processing message ${hcsMessage.sequenceNumber} of type ${hcsPayload['type']}`);
 
 		const hcsMirrorRecord = await this.getMirrorRecord(hcsMessage.sequenceNumber);
 		if (!hcsMirrorRecord) {
@@ -228,7 +227,7 @@ export class HcsMessageProcessingService {
 	private parsePayload(hcsMessage: ConsensusTopicResponse): any | null {
 		let hcsPayloadAsString: string;
 		let hcsPayload: any;
-		console.log(hcsMessage);
+
 		if (hcsMessage.chunkInfo && hcsMessage.chunkInfo.total > 1) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} has chunks, which are not supported.`);
 			return null;
