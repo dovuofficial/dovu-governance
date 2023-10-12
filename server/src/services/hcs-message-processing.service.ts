@@ -99,15 +99,19 @@ export class HcsMessageProcessingService {
 			previousTask = null;
 			// Only perform a ping if this task is at the end of the queue
 			if (this.currentTask === thisHeartbeat) {
-				const lastProcessedTimestamp = this.dataService.getLastUpdated();
-				const lastHcsMessageTimestamp = await this.mirrorClient.getLatestMessageTimestamp();
-				// If the data store is "behind", we do not want to do anything
-				// at the moment, skip this heartbeat to let the hcs message queue
-				// to catch up before updating to the current ledger timestamp.
-				if (lastHcsMessageTimestamp <= lastProcessedTimestamp) {
-					const ledgerTimestamp = await this.mirrorClient.getLatestTransactionTimestamp();
-					this.dataService.setLastUpdated(ledgerTimestamp);
-					this.logger.verbose(`Heartbeat ${ledgerTimestamp}: waiting for HCS Messages`);
+				try {
+					const lastProcessedTimestamp = this.dataService.getLastUpdated();
+					const lastHcsMessageTimestamp = await this.mirrorClient.getLatestMessageTimestamp();
+					// If the data store is "behind", we do not want to do anything
+					// at the moment, skip this heartbeat to let the hcs message queue
+					// to catch up before updating to the current ledger timestamp.
+					if (lastHcsMessageTimestamp <= lastProcessedTimestamp) {
+						const ledgerTimestamp = await this.mirrorClient.getLatestTransactionTimestamp();
+						this.dataService.setLastUpdated(ledgerTimestamp);
+						this.logger.verbose(`Heartbeat ${ledgerTimestamp}: waiting for HCS Messages`);
+					}
+				} catch (err) {
+					this.logger.error(`Heartbeat failed: ${err.message || JSON.stringify(err)}`);
 				}
 			}
 		};
