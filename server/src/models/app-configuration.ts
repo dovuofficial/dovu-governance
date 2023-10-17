@@ -76,8 +76,10 @@ export async function loadAppConfiguration(configService: ConfigService): Promis
 		 * Helper function that computes the starting date/time filter for the processing
 		 * the HCS voting stream, it is the later of either the time of message one
 		 * (the configuration) or (if specified) the time designated in the environment
-		 * variable (HCS_START_DATE).  The system will ignore all ballots created before
-		 * the computed starting filter time.
+		 * variable (HCS_START_DATE).  The system will ignore all rules and ballots created
+		 * before the computed starting filter time. The system will also ignore all ballots
+		 * created after the computed starting filter time until such timestamp where a rule is
+		 * processed on the topic.
 		 */
 		function computeStartDateFilter(): TimestampKeyString {
 			const override = configService.get<string>('HCS_START_DATE');
