@@ -1,26 +1,25 @@
 <script setup lang="ts">
-import type { Vote } from "@/models/proposal";
+import type { ProposalDetail } from "@/models/proposal";
 import BorderPanel from "./BorderPanel.vue";
 import TokenBalance from "./TokenBalance.vue";
-import { token } from "@/models/info";
 
-defineProps<{ votes: Vote[]; choices: string[] }>();
+defineProps<{ proposal: ProposalDetail }>();
 </script>
 
 <template>
   <BorderPanel>
     <template #header>Votes</template>
-    <div v-if="votes.length > 0" class="vote-list">
-      <template v-for="(vote, index) in votes" v-bind:key="index">
+    <div v-if="proposal.votes.length > 0" class="vote-list">
+      <template v-for="(vote, index) in proposal.votes" v-bind:key="index">
         <div class="circle"></div>
         <div>{{ vote.payerId }}</div>
-        <div class="choice">{{ choices[vote.vote] }}</div>
+        <div class="choice">{{ proposal.choices[vote.vote] }}</div>
         <TokenBalance
           class="balance"
           :amount="vote.tokenBalance"
-          :decimals="token?.decimals"
+          :decimals="proposal.hcsToken.decimals"
         />
-        <div>${{ token.symbol }}</div>
+        <div>${{ proposal.hcsToken.symbol }}</div>
       </template>
     </div>
     <div v-else>No Votes have been cast yet.</div>

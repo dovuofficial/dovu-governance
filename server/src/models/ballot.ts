@@ -1,4 +1,5 @@
 import { EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
+import { TokenSummary } from './token-summary';
 /**
  * Stores the details of a proposal ballot (excluding individual votes cast).
  */
@@ -80,4 +81,9 @@ export interface Ballot {
 	 * counting command line applications.
 	 */
 	checksum: string;
+
+	/**
+	 * Represents details of the voting token attached to this ballot instance.
+	 */
+	hcsToken: TokenSummary;
 }

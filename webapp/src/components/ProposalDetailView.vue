@@ -1,31 +1,28 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import VoteCount from "@/components/VoteCount.vue";
-import StatusDisplay from "@/components/StatusDisplay.vue";
 import EpochDateDisplay from "@/components/EpochDateDisplay.vue";
-import CastVote from "./CastVote.vue";
+import StatusDisplay from "@/components/StatusDisplay.vue";
+import VoteCount from "@/components/VoteCount.vue";
 import type { ProposalDetail } from "@/models/proposal";
 import { ProposalStatus } from "@/models/proposal-status";
-import VotesDisplay from "./VotesDisplay.vue";
-import PossibleLink from "./PossibleLink.vue";
-import { token } from "@/models/info";
-import TallySummary from "./TallySummary.vue";
+import { computed } from "vue";
 import BorderPanel from "./BorderPanel.vue";
+import CastVote from "./CastVote.vue";
+import PossibleLink from "./PossibleLink.vue";
+import TallySummary from "./TallySummary.vue";
+import VotesDisplay from "./VotesDisplay.vue";
 
 const props = defineProps<{
   proposal: ProposalDetail;
 }>();
 
 const summary = computed(() => {
-  const symbol = token.value.symbol || "";
-  const decimals = token.value.decimals || 0;
   if (props.proposal) {
     const total = props.proposal.votes.reduce((p, c) => p + c.tokenBalance, 0);
     return props.proposal.choices.map((answer, index) => {
       return {
-        symbol,
+        symbol: props.proposal.hcsToken.symbol,
         answer,
-        decimals,
+        decimals: props.proposal.hcsToken.decimals,
         count: props.proposal.tally[index] || 0,
         total,
       };
@@ -61,8 +58,7 @@ const summary = computed(() => {
         v-if="proposal.status === ProposalStatus.Voting"
       />
       <VotesDisplay
-        :votes="proposal.votes"
-        :choices="proposal.choices"
+        :proposal="proposal"
         v-if="proposal.status !== ProposalStatus.Queued"
       />
     </div>

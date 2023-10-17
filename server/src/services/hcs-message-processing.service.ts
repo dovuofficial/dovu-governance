@@ -1,11 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { HcsBallotProcessingService } from './hcs-ballot-processing.service';
-import { MirrorClientService } from './mirror-client.service';
-import { HcsVoteProcessingService } from './hcs-vote-processing.service';
-import { ConsensusTopicResponse } from '@bugbytes/hapi-proto';
 import { MessageInfo } from '@bugbytes/hapi-mirror';
+import { ConsensusTopicResponse } from '@bugbytes/hapi-proto';
 import { TimestampKeyString, timestamp_to_keyString } from '@bugbytes/hapi-util';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataService } from './data.service';
+import { HcsBallotProcessingService } from './hcs-ballot-processing.service';
+import { HcsRulesProcessingService } from './hcs-rules-processing.service';
+import { HcsVoteProcessingService } from './hcs-vote-processing.service';
+import { MirrorClientService } from './mirror-client.service';
 /**
  * Root HCS message processing pipeline.  This service receives raw HCS
  * messages for the topic.  It validates each message, determining if
@@ -64,6 +65,7 @@ export class HcsMessageProcessingService {
 	constructor(
 		private readonly hcsBallotProcessor: HcsBallotProcessingService,
 		private readonly hcsVoteProcessor: HcsVoteProcessingService,
+		private readonly hcsRulesProcessor: HcsRulesProcessingService,
 		private readonly mirrorClient: MirrorClientService,
 		private readonly dataService: DataService,
 	) {}
@@ -97,15 +99,19 @@ export class HcsMessageProcessingService {
 			previousTask = null;
 			// Only perform a ping if this task is at the end of the queue
 			if (this.currentTask === thisHeartbeat) {
-				const lastProcessedTimestamp = this.dataService.getLastUpdated();
-				const lastHcsMessageTimestamp = await this.mirrorClient.getLatestMessageTimestamp();
-				// If the data store is "behind", we do not want to do anything
-				// at the moment, skip this heartbeat to let the hcs message queue
-				// to catch up before updating to the current ledger timestamp.
-				if (lastHcsMessageTimestamp <= lastProcessedTimestamp) {
-					const ledgerTimestamp = await this.mirrorClient.getLatestTransactionTimestamp();
-					this.dataService.setLastUpdated(ledgerTimestamp);
-					this.logger.verbose(`Heartbeat ${ledgerTimestamp}: waiting for HCS Messages`);
+				try {
+					const lastProcessedTimestamp = this.dataService.getLastUpdated();
+					const lastHcsMessageTimestamp = await this.mirrorClient.getLatestMessageTimestamp();
+					// If the data store is "behind", we do not want to do anything
+					// at the moment, skip this heartbeat to let the hcs message queue
+					// to catch up before updating to the current ledger timestamp.
+					if (lastHcsMessageTimestamp <= lastProcessedTimestamp) {
+						const ledgerTimestamp = await this.mirrorClient.getLatestTransactionTimestamp();
+						this.dataService.setLastUpdated(ledgerTimestamp);
+						this.logger.verbose(`Heartbeat ${ledgerTimestamp}: waiting for HCS Messages`);
+					}
+				} catch (err) {
+					this.logger.error(`Heartbeat failed: ${err.message || JSON.stringify(err)}`);
 				}
 			}
 		};
@@ -191,15 +197,19 @@ export class HcsMessageProcessingService {
 		if (!hcsPayload) {
 			return this.discardMessage;
 		}
+
 		const hcsMirrorRecord = await this.getMirrorRecord(hcsMessage.sequenceNumber);
 		if (!hcsMirrorRecord) {
 			return this.discardMessage;
 		}
+
 		switch (hcsPayload['type']) {
 			case 'create-ballot':
 				return this.hcsBallotProcessor.processMessage(hcsMessage, hcsMirrorRecord, hcsPayload);
 			case 'cast-vote':
 				return this.hcsVoteProcessor.processMessage(hcsMessage, hcsMirrorRecord, hcsPayload);
+			case 'define-rules':
+				return this.hcsRulesProcessor.processMessage(hcsMessage, hcsMirrorRecord, hcsPayload);
 			default:
 				this.logger.verbose(`Message ${hcsMessage.sequenceNumber} is not recognized as a valid hcs message for processing.`);
 				return this.discardMessage;
@@ -217,7 +227,8 @@ export class HcsMessageProcessingService {
 	private parsePayload(hcsMessage: ConsensusTopicResponse): any | null {
 		let hcsPayloadAsString: string;
 		let hcsPayload: any;
-		if (hcsMessage.chunkInfo) {
+
+		if (hcsMessage.chunkInfo && hcsMessage.chunkInfo.total > 1) {
 			this.logger.verbose(`Message ${hcsMessage.sequenceNumber} has chunks, which are not supported.`);
 			return null;
 		}

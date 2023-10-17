@@ -1,8 +1,9 @@
 import { date_to_keyString, EntityIdKeyString, TimestampKeyString } from '@bugbytes/hapi-util';
 import { Injectable } from '@nestjs/common';
-import { Ballot } from 'src/models/ballot';
-import { Vote } from 'src/models/vote';
 import * as crypto from 'crypto';
+import { Ballot } from 'src/models/ballot';
+import { Rule } from 'src/models/rules';
+import { Vote } from 'src/models/vote';
 import { MirrorClientService } from './mirror-client.service';
 /**
  * Internal tracking of the last HCS timestamp processed,
@@ -38,6 +39,11 @@ const ballots = new Map<TimestampKeyString, Ballot>();
  * ballot’s creation message.
  */
 const votes = new Map<TimestampKeyString, Map<EntityIdKeyString, Vote>>();
+/**
+ * Internal map of all the rules for this HCS topic.  The key to the map
+ * is the consensus timestamp of each rule’s creation message.
+ */
+const rules = new Map<TimestampKeyString, Rule>();
 /**
  * The central data storage service holding the proposal ballots and their
  * votes.  The state it holds is built up over time by processing HCS
@@ -174,6 +180,52 @@ export class DataService {
 		}
 		return undefined;
 	}
+
+	/**
+	 * Adds a rule to the map of rules.
+	 *
+	 * @param rule The rule to add.
+	 *
+	 */
+	setRule(rule: Rule) {
+		rules.set(rule.consensusTimestamp, rule);
+	}
+
+	/**
+	 * Retrieves the rule corresponding to the given consensus timestamp.
+	 * @param consensusTimestamp The consensus timestamp of the rule to retrieve.
+	 * @returns The rule for the given consensus timestamp or undefined if no rule exists.
+	 * */
+	getRule(consensusTimestamp: TimestampKeyString): Rule | undefined {
+		return rules.get(consensusTimestamp);
+	}
+
+	/**
+	 * Retrieves the latest rule before or on a given consensus timestamp. If no timestamp is provided, the latest rule is returned.
+	 * @param consensusTimestamp Optional consensus timestamp of the rule to retrieve.
+	 * @returns The rule for the given consensus timestamp or undefined if no rule exists.
+	 * */
+	getLatestRule(consensusTimestamp?: TimestampKeyString): Rule | undefined {
+		if (rules.has(consensusTimestamp)) {
+			return rules.get(consensusTimestamp);
+		}
+
+		return Array.from(rules.values())
+			.filter((r) => (consensusTimestamp ? r.consensusTimestamp < consensusTimestamp : true))
+			.sort((a, b) => b.consensusTimestamp.localeCompare(a.consensusTimestamp))[0];
+	}
+
+	/**
+	 * Retrieves the rule that was submitted first. This is usually the first sequence (1) in the HCS topic.
+	 * @returns The Rule that was submitted first or undefined if no rules exist yet.
+	 * */
+	getFirstRule(): Rule | undefined {
+		if (rules.size === 0) {
+			return undefined;
+		}
+
+		return Array.from(rules.values()).sort((a, b) => a.consensusTimestamp.localeCompare(b.consensusTimestamp))[0];
+	}
 }
 /**
  * Private function that that reviews the state of non-closed ballots
@@ -211,7 +263,7 @@ async function computeChecksumIfNecessary(client: MirrorClientService, ballot: B
 	// balance necessary to pass the ballot.
 	let threshold = 0;
 	if (ballot.minVotingThreshold > 0) {
-		const circulation = (await client.getHcsTokenSummary(ballot.startTimestamp)).circulation;
+		const circulation = (await client.getTokenInfo(ballot.hcsToken.id, ballot.startTimestamp)).circulation;
 		const ineligible =
 			ballot.ineligibleAccounts.length > 0
 				? (await Promise.all(ballot.ineligibleAccounts.map((a) => client.getTokenBalance(a, ballot.tokenId, ballot.startTimestamp))))

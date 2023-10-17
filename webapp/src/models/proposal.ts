@@ -1,5 +1,5 @@
-import { ProposalStatus } from "@/models/proposal-status";
 import { dateFromEpoch } from "@/models/epoch";
+import { ProposalStatus } from "@/models/proposal-status";
 import type { EntityIdKeyString } from "@bugbytes/hapi-util";
 /**
  * Interface holding proposal information to display.
@@ -57,6 +57,15 @@ export interface Proposal {
    * Current UI status of the proposal.
    */
   status: ProposalStatus;
+  /**
+   * The hcsToken used for vote weighting for this proposal.
+   */
+  hcsToken: {
+    id: string;
+    symbol: string;
+    name: string;
+    decimals: number;
+  };
 }
 /**
  * Retrieves the full list of proposals from the remote server.
@@ -79,6 +88,7 @@ export async function getProposals(): Promise<Proposal[]> {
       checksum: item.checksum,
       status,
       expires,
+      hcsToken: item.hcsToken,
     };
   });
 }
@@ -92,24 +102,14 @@ export interface Vote {
   tokenBalance: number;
 }
 
-export interface ProposalDetail {
-  consensusTimestamp: string;
-  author: string;
-  title: string;
-  description: string;
+export interface ProposalDetail extends Proposal {
   discussion: string;
   scheme: string;
-  choices: string[];
-  expires: number;
-  status: ProposalStatus;
   threshold: number;
   ineligible: EntityIdKeyString[];
   startTimestamp: string;
   endTimestamp: string;
-  tally: number[];
   votes: Vote[];
-  winner: number;
-  checksum: string;
 }
 
 export async function getProposalDetails(
@@ -143,6 +143,7 @@ export async function getProposalDetails(
     checksum: json.checksum,
     status,
     expires,
+    hcsToken: json.hcsToken,
   };
 }
 

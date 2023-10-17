@@ -25,8 +25,10 @@ export class AppController {
 	 */
 	@Get('info')
 	getInfo(): any {
+		const currentRule = this.dataService.getLatestRule();
 		return {
 			...this.config,
+			...currentRule,
 			lastUpdated: this.dataService.getLastUpdated(),
 			version: process.env.npm_package_version || 'unknown',
 		};
