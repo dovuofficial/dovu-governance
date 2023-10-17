@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import TokenBalance from "./TokenBalance.vue";
-import { token } from "@/models/info";
-import ApprovedIcon from "./icons/ApprovedIcon.vue";
-import RejectedIcon from "./icons/RejectedIcon.vue";
-import IndeterminateIcon from "./icons/IndeterminateIcon.vue";
 import type { Proposal, ProposalDetail } from "@/models/proposal";
+import TokenBalance from "./TokenBalance.vue";
+import ApprovedIcon from "./icons/ApprovedIcon.vue";
+import IndeterminateIcon from "./icons/IndeterminateIcon.vue";
+import RejectedIcon from "./icons/RejectedIcon.vue";
 
 defineProps<{ proposal: Proposal | ProposalDetail }>();
 </script>
@@ -16,9 +15,9 @@ defineProps<{ proposal: Proposal | ProposalDetail }>();
     {{ proposal.choices[proposal.winner] }}
     <TokenBalance
       :amount="proposal.tally[proposal.winner]"
-      :decimals="token.decimals"
+      :decimals="proposal.hcsToken.decimals"
     />
-    <span class="symbol">${{ token.symbol }} </span>
+    <span class="symbol">${{ proposal.hcsToken.symbol }} </span>
     <span class="checksum">[{{ proposal.checksum }}]</span>
   </div>
   <div v-else class="indeterminate">

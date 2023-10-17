@@ -1,7 +1,7 @@
-import { getFirstHcsMessageInTopic, getTokenBalanceList, getHcsMessageByConsensusTimestamp, getHcsTokenInfo, getValidHcsMessagesInRange } from "./mirror";
+import * as crypto from "node:crypto";
+import { getFirstHcsMessageInTopic, getHcsMessageByConsensusTimestamp, getHcsTokenInfo, getTokenBalanceList, getValidHcsMessagesInRange } from "./mirror";
 import { Attestation, BallotInfo, HcsCreateProposalMessage, HcsMessage, HcsVoteMessage, RulesDefinition, Vote } from "./types";
 import { computeDiffInDays, getCurrentTime, isAddress, isAddressArrayOrUndefined, isFractionOrUndefined, isNonNegativeOrUndefined, isTimestamp } from "./util";
-import * as crypto from "node:crypto";
 
 export async function attest(hostname: string, ballotId: string): Promise<Attestation> {
     let ballotInfo: BallotInfo;
@@ -63,7 +63,6 @@ export async function attest(hostname: string, ballotId: string): Promise<Attest
                 }
             }
             if (!isTimestamp(createMessage.startTimestamp)) {
-                console.log(createMessage.startTimestamp);
                 throw new Error(`Proposal has an Invalid Voting Start Time.`);
             }
             if (!isTimestamp(createMessage.endTimestamp)) {
