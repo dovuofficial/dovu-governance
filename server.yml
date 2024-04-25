@@ -4,7 +4,7 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
-    image: tcg/gov-api:local
+    image: ${DOCKER_IMAGE_PREFIX:-dovu/gov}-api:${DOCKER_IMAGE_TAG:-latest}
     restart: always
     ports:
       - ${SERVER_API_PORT}:80
