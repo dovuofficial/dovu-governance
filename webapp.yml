@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
       args:
         API_ENDPOINT: ${WEBAPP_API_ENDPOINT:-http://localhost:${SERVER_API_PORT}}
-    image: ${DOCKER_IMAGE_PREFIX:-dovu/gov}-ui:${DOCKER_IMAGE_TAG:-latest}
+    image: ${DOCKER_IMAGE_PREFIX:-dovu/gov}-ui:${DOCKER_IMAGE_TAG:-local}
     ports:
       - ${WEBAPP_PORT}:80
     depends_on:
